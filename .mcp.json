@@ -2,7 +2,7 @@
   "mcpServers": {
     "Neon": {
       "type": "http",
-      "url": "https://mcp.neon.tech/mcp?projectId=lively-thunder-14546820"
+      "url": "https://mcp.neon.tech/mcp?projectId=flat-shadow-07637905"
     },
     "shadcn": {
       "command": "pnpm",

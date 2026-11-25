@@ -1,7 +1,7 @@
 import "@/styles/candidates/candidates.css";
-import { cn } from "cn";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { candidates } from "@/styles/candidates";
 import { candidateFonts } from "@/styles/candidates/fonts";
 import { PreviewSheet } from "./preview-sheet";

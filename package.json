@@ -1,5 +1,5 @@
 {
-  "name": "app-template",
+  "name": "smoke-notes",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -31,7 +31,6 @@
     "auth:remove": "tsx scripts/remove-auth.ts",
     "provision": "tsx scripts/provision.ts",
     "deprovision": "tsx scripts/deprovision.ts",
-    "skill:link": "tsx scripts/link-skill.ts",
     "vercel-build": "tsx scripts/vercel-build.ts"
   },
   "dependencies": {

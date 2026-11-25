@@ -369,7 +369,9 @@ describe("auth providers file", () => {
   });
 });
 
-describe("template-only files", () => {
+// Only meaningful in the template itself: provisioning removes these files from every new app,
+// and only a provisioned app has provision.json.
+describe.skipIf(existsSync("provision.json"))("template-only files", () => {
   it("exist in the template, so provisioning has something to remove", () => {
     for (const path of TEMPLATE_ONLY) expect(existsSync(path), path).toBe(true);
   });

@@ -1,4 +1,4 @@
-# App Template <!-- template:name -->
+# Smoke Notes <!-- template:name -->
 
 A starting point for new web apps. It comes with a database, sign-in, a finished example
 feature (a to-do list called **Tasks**), tests, and safety rails so Claude Code can build on
