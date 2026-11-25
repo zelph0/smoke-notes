@@ -1,0 +1,8 @@
+{
+  "owner": "zelph0",
+  "visibility": "public",
+  "auth": true,
+  "providers": ["google"],
+  "region": "iad1",
+  "scope": "zelph0s-projects"
+}

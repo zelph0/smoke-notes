@@ -6,11 +6,11 @@
  */
 export const templateConfig = {
   /** Human-readable product name. */
-  name: "App Template",
+  name: "Smoke Notes",
   /** URL/package-safe identifier: lowercase letters, digits and dashes. */
-  slug: "app-template",
+  slug: "smoke-notes",
   /** One sentence used for <meta name="description"> and the OG image. */
-  description: "An AI-first Next.js starter with Neon, Prisma, auth and a complete reference feature.",
+  description: "A note and reminders app that has unique cool visual effects that resembles smoke.",
   /** BCP 47 language tag for <html lang>. */
   locale: "en",
 } as const;
