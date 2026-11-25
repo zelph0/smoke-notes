@@ -36,6 +36,10 @@ const TASKS: TaskDTO[] = [
     done: false,
     dueDate: "2026-12-04",
     createdAt: "2026-11-20T09:00:00.000Z",
+    subtasks: [
+      { id: "preview-1a", title: "Collect quotes from the beta", done: true },
+      { id: "preview-1b", title: "Get sign-off from legal", done: false },
+    ],
   },
   {
     id: "preview-2",
@@ -44,6 +48,7 @@ const TASKS: TaskDTO[] = [
     done: true,
     dueDate: null,
     createdAt: "2026-11-18T09:00:00.000Z",
+    subtasks: [],
   },
   {
     id: "preview-3",
@@ -52,6 +57,7 @@ const TASKS: TaskDTO[] = [
     done: false,
     dueDate: "2026-11-01",
     createdAt: "2026-11-10T09:00:00.000Z",
+    subtasks: [],
   },
 ];
 

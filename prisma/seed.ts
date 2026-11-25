@@ -26,15 +26,33 @@ const db = createPrismaClient(databaseUrl);
 const day = 24 * 60 * 60 * 1000;
 const dateIn = (days: number) => new Date(Math.floor(Date.now() / day) * day + days * day);
 
-const DEMO_TASKS: { title: string; notes?: string; dueInDays?: number; done?: boolean }[] = [
-  { title: "Draft Q3 planning doc", notes: "Pull numbers from the June dashboard first.", dueInDays: 2 },
+type DemoTask = { title: string; notes?: string; dueInDays?: number; done?: boolean; subtasks?: [string, boolean][] };
+
+const DEMO_TASKS: DemoTask[] = [
+  {
+    title: "Draft Q3 planning doc",
+    notes: "Pull numbers from the June dashboard first.",
+    dueInDays: 2,
+    subtasks: [
+      ["Pull June numbers", true],
+      ["Outline the three goals", true],
+      ["Write the risks section", false],
+    ],
+  },
   { title: "Review Priya's pull request on billing retries", dueInDays: 0 },
   { title: "Book flights for the Lisbon offsite", notes: "Prefer the morning flight on the 14th.", dueInDays: 9 },
   { title: "Renew the domain before it lapses", dueInDays: 5 },
   { title: "Reply to the accountant about VAT receipts", done: true },
   { title: "Update onboarding checklist for new hires" },
   { title: "Fix flaky checkout test", notes: "Fails ~1 in 20 runs on CI; suspect a race in the cart fixture." },
-  { title: "Prepare demo for Thursday's customer call", dueInDays: 3 },
+  {
+    title: "Prepare demo for Thursday's customer call",
+    dueInDays: 3,
+    subtasks: [
+      ["Reset the demo account", false],
+      ["Rehearse the billing flow", false],
+    ],
+  },
   { title: "Order replacement laptop charger", done: true },
   { title: "Write release notes for v1.4", dueInDays: 1 },
   { title: "Schedule 1:1s for next week" },
@@ -50,23 +68,42 @@ const DEMO_TASKS: { title: string; notes?: string; dueInDays?: number; done?: bo
   { title: "Archive last quarter's Slack channels", done: true },
   { title: "Pair with Sam on the search indexing bug" },
   { title: "Plan the team lunch", dueInDays: 6 },
-  { title: "Rotate the staging API keys", done: true },
+  {
+    title: "Rotate the staging API keys",
+    done: true,
+    subtasks: [
+      ["Generate new keys", true],
+      ["Update the secrets store", true],
+    ],
+  },
   { title: "Tidy up the README", done: true },
 ];
 
 async function main() {
   const demoId = await ensureUser(DEMO_USER, authEnv);
-  await db.task.deleteMany({ where: { ownerId: demoId } });
-  await db.task.createMany({
-    data: DEMO_TASKS.map((task, index) => ({
-      ownerId: demoId,
-      title: task.title,
-      notes: task.notes ?? null,
-      status: task.done ? ("DONE" as const) : ("TODO" as const),
-      dueDate: task.dueInDays === undefined ? null : dateIn(task.dueInDays),
-      createdAt: new Date(Date.now() - index * 3_600_000),
-    })),
-  });
+  await db.task.deleteMany({ where: { ownerId: demoId } }); // cascades to subtasks
+  await db.$transaction(
+    DEMO_TASKS.map((task, index) => {
+      const createdAt = new Date(Date.now() - index * 3_600_000);
+      return db.task.create({
+        data: {
+          ownerId: demoId,
+          title: task.title,
+          notes: task.notes ?? null,
+          status: task.done ? "DONE" : "TODO",
+          dueDate: task.dueInDays === undefined ? null : dateIn(task.dueInDays),
+          createdAt,
+          subtasks: {
+            create: (task.subtasks ?? []).map(([title, done], i) => ({
+              title,
+              done,
+              createdAt: new Date(createdAt.getTime() + i * 1000),
+            })),
+          },
+        },
+      });
+    }),
+  );
 
   // E2E users start empty; the specs create what they need.
   for (const user of Object.values(E2E_USERS)) {

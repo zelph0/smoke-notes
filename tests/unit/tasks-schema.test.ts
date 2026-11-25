@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { createTaskSchema, setTaskDoneSchema, taskFilterSchema, updateTaskSchema } from "@/features/tasks/schema";
+import {
+  createSubtaskSchema,
+  createTaskSchema,
+  setSubtaskDoneSchema,
+  setTaskDoneSchema,
+  taskFilterSchema,
+  updateSubtaskSchema,
+  updateTaskSchema,
+} from "@/features/tasks/schema";
 
 describe("createTaskSchema", () => {
   it("trims the title and normalizes empty optional fields to null", () => {
@@ -50,5 +58,29 @@ describe("taskFilterSchema", () => {
     [["done", "active"], "all"],
   ])("maps %j to %s", (input, expected) => {
     expect(taskFilterSchema.parse(input)).toBe(expected);
+  });
+});
+
+describe("subtask schemas", () => {
+  const taskId = "cjld2cjxh0000qzrmn831i7rn";
+
+  it("trims the title and requires a valid task id", () => {
+    expect(createSubtaskSchema.parse({ taskId, title: "  Outline " })).toEqual({ taskId, title: "Outline" });
+    expect(createSubtaskSchema.safeParse({ taskId: "nope", title: "Outline" }).success).toBe(false);
+  });
+
+  it.each([
+    [{ title: "" }, "Give the subtask a title."],
+    [{ title: "   " }, "Give the subtask a title."],
+    [{}, "Give the subtask a title."],
+    [{ title: "x".repeat(201) }, "Keep the title under 200 characters."],
+  ])("rejects %j", (input, message) => {
+    const result = updateSubtaskSchema.safeParse({ id: taskId, ...input });
+    expect(result.error?.issues.find((i) => i.path[0] === "title")?.message).toBe(message);
+  });
+
+  it("only accepts a boolean done flag", () => {
+    expect(setSubtaskDoneSchema.safeParse({ id: taskId, done: "true" }).success).toBe(false);
+    expect(setSubtaskDoneSchema.parse({ id: taskId, done: false })).toEqual({ id: taskId, done: false });
   });
 });
