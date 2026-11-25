@@ -53,3 +53,24 @@ export const updateTaskSchema = createTaskSchema.extend({ id: taskIdSchema });
 export type UpdateTaskInput = z.output<typeof updateTaskSchema>;
 
 export const setTaskDoneSchema = z.object({ id: taskIdSchema, done: z.boolean() });
+
+/* Subtasks: a checklist under a task. Title only. */
+
+export const SUBTASK_TITLE_MAX = TASK_TITLE_MAX;
+export const SUBTASKS_PER_TASK_MAX = 50;
+
+export const subtaskIdSchema = z.cuid("Unknown subtask.");
+
+const subtaskTitle = z
+  .string("Give the subtask a title.")
+  .trim()
+  .min(1, "Give the subtask a title.")
+  .max(SUBTASK_TITLE_MAX, `Keep the title under ${SUBTASK_TITLE_MAX} characters.`);
+
+export const createSubtaskSchema = z.object({ taskId: taskIdSchema, title: subtaskTitle });
+export type CreateSubtaskInput = z.output<typeof createSubtaskSchema>;
+
+export const updateSubtaskSchema = z.object({ id: subtaskIdSchema, title: subtaskTitle });
+export type UpdateSubtaskInput = z.output<typeof updateSubtaskSchema>;
+
+export const setSubtaskDoneSchema = z.object({ id: subtaskIdSchema, done: z.boolean() });

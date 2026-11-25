@@ -28,6 +28,21 @@ model Task {
   dueDate   DateTime?  @db.Date
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  subtasks  Subtask[]
 
   @@index([ownerId, status, createdAt(sort: Desc)])
+}
+
+/// A checklist step under a Task. Owner-scoped through its task (`task.ownerId`).
+/// A task can only be DONE when every one of its subtasks is done (enforced in the data layer).
+model Subtask {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title     String   @db.VarChar(200)
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId, createdAt])
 }

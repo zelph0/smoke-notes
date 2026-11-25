@@ -4,10 +4,29 @@ import { updateTag } from "next/cache";
 import { type ActionResult, failure, formValues, invalid, success } from "@/lib/action-result";
 import { reportError } from "@/lib/observability";
 import { requireViewer } from "@/lib/viewer";
-import { createTaskForOwner, deleteTaskForOwner, setTaskDoneForOwner, updateTaskForOwner } from "./data";
+import {
+  createSubtaskForOwner,
+  createTaskForOwner,
+  deleteSubtaskForOwner,
+  deleteTaskForOwner,
+  setSubtaskDoneForOwner,
+  setTaskDoneForOwner,
+  updateSubtaskForOwner,
+  updateTaskForOwner,
+} from "./data";
 import { tasksTag } from "./queries";
-import { createTaskSchema, setTaskDoneSchema, taskIdSchema, updateTaskSchema } from "./schema";
-import type { TaskDTO } from "./types";
+import {
+  createSubtaskSchema,
+  createTaskSchema,
+  SUBTASKS_PER_TASK_MAX,
+  setSubtaskDoneSchema,
+  setTaskDoneSchema,
+  subtaskIdSchema,
+  taskIdSchema,
+  updateSubtaskSchema,
+  updateTaskSchema,
+} from "./schema";
+import type { SubtaskDTO, TaskDTO } from "./types";
 
 /*
  * Server actions are public HTTP endpoints. Every action:
@@ -19,6 +38,8 @@ import type { TaskDTO } from "./types";
  */
 
 const NOT_FOUND = "That task no longer exists.";
+const SUBTASK_NOT_FOUND = "That subtask no longer exists.";
+const OPEN_SUBTASKS = "Finish every subtask first.";
 const UNEXPECTED = "Something went wrong. Please try again.";
 
 /** Form action (useActionState): create a task. */
@@ -63,8 +84,9 @@ export async function setTaskDone(id: string, done: boolean): Promise<ActionResu
   if (!parsed.success) return failure(NOT_FOUND);
 
   try {
-    const found = await setTaskDoneForOwner(viewer.id, parsed.data.id, parsed.data.done);
-    if (!found) return failure(NOT_FOUND);
+    const outcome = await setTaskDoneForOwner(viewer.id, parsed.data.id, parsed.data.done);
+    if (outcome === "not_found") return failure(NOT_FOUND);
+    if (outcome === "open_subtasks") return failure(OPEN_SUBTASKS);
     updateTag(tasksTag(viewer.id));
     return success(undefined);
   } catch (error) {
@@ -85,6 +107,82 @@ export async function deleteTask(id: string): Promise<ActionResult> {
     return success(undefined, "Task deleted.");
   } catch (error) {
     reportError(error, { action: "deleteTask" });
+    return failure(UNEXPECTED);
+  }
+}
+
+/** Form action (useActionState): add a subtask. Reopens the task if it was done. */
+export async function createSubtask(
+  _prev: ActionResult<SubtaskDTO>,
+  formData: FormData,
+): Promise<ActionResult<SubtaskDTO>> {
+  const viewer = await requireViewer();
+  const values = formValues(formData);
+  const parsed = createSubtaskSchema.safeParse(values);
+  if (!parsed.success) return invalid(parsed.error, values);
+
+  try {
+    const result = await createSubtaskForOwner(viewer.id, parsed.data);
+    if (result === "not_found") return failure(NOT_FOUND);
+    if (result === "limit") return failure(`A task can have up to ${SUBTASKS_PER_TASK_MAX} subtasks.`, { values });
+    updateTag(tasksTag(viewer.id));
+    return success(result);
+  } catch (error) {
+    reportError(error, { action: "createSubtask" });
+    return failure(UNEXPECTED, { values });
+  }
+}
+
+/** Form action (useActionState): rename a subtask. */
+export async function updateSubtask(
+  _prev: ActionResult<SubtaskDTO>,
+  formData: FormData,
+): Promise<ActionResult<SubtaskDTO>> {
+  const viewer = await requireViewer();
+  const values = formValues(formData);
+  const parsed = updateSubtaskSchema.safeParse(values);
+  if (!parsed.success) return invalid(parsed.error, values);
+
+  try {
+    const subtask = await updateSubtaskForOwner(viewer.id, parsed.data);
+    if (!subtask) return failure(SUBTASK_NOT_FOUND);
+    updateTag(tasksTag(viewer.id));
+    return success(subtask);
+  } catch (error) {
+    reportError(error, { action: "updateSubtask" });
+    return failure(UNEXPECTED, { values });
+  }
+}
+
+/** Called from an optimistic checkbox. Reopening a subtask reopens its task. */
+export async function setSubtaskDone(id: string, done: boolean): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const parsed = setSubtaskDoneSchema.safeParse({ id, done });
+  if (!parsed.success) return failure(SUBTASK_NOT_FOUND);
+
+  try {
+    const found = await setSubtaskDoneForOwner(viewer.id, parsed.data.id, parsed.data.done);
+    if (!found) return failure(SUBTASK_NOT_FOUND);
+    updateTag(tasksTag(viewer.id));
+    return success(undefined);
+  } catch (error) {
+    reportError(error, { action: "setSubtaskDone" });
+    return failure(UNEXPECTED);
+  }
+}
+
+export async function deleteSubtask(id: string): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const parsed = subtaskIdSchema.safeParse(id);
+  if (!parsed.success) return failure(SUBTASK_NOT_FOUND);
+
+  try {
+    const found = await deleteSubtaskForOwner(viewer.id, parsed.data);
+    if (!found) return failure(SUBTASK_NOT_FOUND);
+    updateTag(tasksTag(viewer.id));
+    return success(undefined, "Subtask deleted.");
+  } catch (error) {
+    reportError(error, { action: "deleteSubtask" });
     return failure(UNEXPECTED);
   }
 }
