@@ -54,7 +54,8 @@ describe("user B cannot access user A's tasks", () => {
   });
 
   it("can't complete them", async () => {
-    expect(await setTaskDone(taskOfA, true)).toMatchObject({ ok: false });
+    // Exact error: A's task has an open subtask, so a bare `ok: false` would pass without the owner check.
+    expect(await setTaskDone(taskOfA, true)).toEqual({ ok: false, error: "That task no longer exists." });
     expect((await taskOfAInDb()).status).toBe("TODO");
   });
 
@@ -86,6 +87,10 @@ describe("user B cannot access user A's tasks", () => {
     expect(await setTaskDone(taskOfA, true)).toEqual({ ok: false, error: "Finish every subtask first." });
     expect(await setSubtaskDone(subtaskOfA, true)).toMatchObject({ ok: true });
     expect(await setTaskDone(taskOfA, true)).toMatchObject({ ok: true });
+    expect((await taskOfAInDb()).status).toBe("DONE");
+
+    current = userB;
+    expect(await setTaskDone(taskOfA, false)).toEqual({ ok: false, error: "That task no longer exists." });
     expect((await taskOfAInDb()).status).toBe("DONE");
   });
 });

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
+import type { SetTaskDoneResult } from "@/features/tasks/data";
 import {
   countTasksForOwner,
   createSubtaskForOwner,
@@ -102,13 +103,27 @@ describe("subtasks and the completion rule", () => {
     expect((await find(task.id))?.done).toBe(false);
   });
 
-  it("never leaves a task done with an open subtask under concurrent writes", async () => {
+  it("completing waits for a concurrent writer holding the task lock, then sees its write", async () => {
     const task = await newTask("Race");
     const a = await addSubtask(task.id, "A");
     await setSubtaskDoneForOwner(owner, a.id, true);
-    await Promise.all([setTaskDoneForOwner(owner, task.id, true), setSubtaskDoneForOwner(owner, a.id, false)]);
-    const after = await find(task.id);
-    expect(after?.done && after.subtasks.some((s) => !s.done)).toBe(false);
+
+    let completion: Promise<SetTaskDoneResult> | undefined;
+    await db.$transaction(async (tx) => {
+      // Play the part of a concurrent "reopen subtask": lock the task, reopen the subtask, don't commit yet.
+      await tx.$queryRaw`SELECT "id" FROM "Task" WHERE "id" = ${task.id} FOR UPDATE`;
+      await tx.subtask.update({ where: { id: a.id }, data: { done: false } });
+      completion = setTaskDoneForOwner(owner, task.id, true);
+      const early = await Promise.race([
+        completion.then(() => "finished"),
+        new Promise((resolve) => setTimeout(() => resolve("waiting"), 750)),
+      ]);
+      expect(early).toBe("waiting"); // blocked on the row lock
+    });
+
+    // Without the lock it would have counted the old (done) subtask and marked the task DONE.
+    expect(await completion).toBe("open_subtasks");
+    expect((await find(task.id))?.done).toBe(false);
   });
 
   it("renames, deletes, caps the count and cascades on task delete", async () => {

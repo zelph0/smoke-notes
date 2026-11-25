@@ -1,7 +1,7 @@
 "use client";
 
 import { PencilIcon, XIcon } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { SubtaskDTO, TaskDTO } from "../types";
@@ -42,7 +42,31 @@ type ItemProps = {
 
 export function SubtaskItem({ subtask, onToggle, onDelete }: ItemProps) {
   const [renaming, setRenaming] = useState(false);
-  const stopRenaming = useCallback(() => setRenaming(false), []);
+  const renameButton = useRef<HTMLButtonElement>(null);
+  const refocusRename = useRef(false);
+  const stopRenaming = useCallback(() => {
+    refocusRename.current = true;
+    setRenaming(false);
+  }, []);
+
+  // The rename button remounts when the form closes; put focus back on it.
+  useEffect(() => {
+    if (!renaming && refocusRename.current) {
+      refocusRename.current = false;
+      renameButton.current?.focus();
+    }
+  }, [renaming]);
+
+  function remove(event: React.MouseEvent<HTMLButtonElement>) {
+    // The row is about to disappear: move focus to the next (or previous) subtask, else the task's add button.
+    const row = event.currentTarget.closest("li");
+    const sibling = row?.nextElementSibling ?? row?.previousElementSibling;
+    const target =
+      sibling?.querySelector<HTMLElement>('[role="checkbox"]') ??
+      row?.closest('[data-testid="task-item"]')?.querySelector<HTMLElement>("[data-subtask-add]");
+    target?.focus();
+    onDelete(subtask.id);
+  }
   const checkboxId = `subtask-${subtask.id}`;
 
   if (renaming) {
@@ -74,16 +98,12 @@ export function SubtaskItem({ subtask, onToggle, onDelete }: ItemProps) {
           variant="ghost"
           size="icon-xs"
           aria-label={`Rename subtask "${subtask.title}"`}
+          ref={renameButton}
           onClick={() => setRenaming(true)}
         >
           <PencilIcon />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          aria-label={`Delete subtask "${subtask.title}"`}
-          onClick={() => onDelete(subtask.id)}
-        >
+        <Button variant="ghost" size="icon-xs" aria-label={`Delete subtask "${subtask.title}"`} onClick={remove}>
           <XIcon />
         </Button>
       </div>

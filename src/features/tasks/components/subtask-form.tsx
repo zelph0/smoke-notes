@@ -72,11 +72,14 @@ export function SubtaskForm({ mode, taskId, taskTitle, subtask, onClose }: Props
           ref={inputRef}
           id={inputId}
           name="title"
-          placeholder={mode === "create" ? "Add a subtask" : undefined}
+          placeholder={mode === "create" ? "Add a subtask…" : undefined}
           maxLength={SUBTASK_TITLE_MAX}
           defaultValue={value ?? subtask?.title ?? ""}
           autoComplete="off"
           required
+          // Paused while saving: the form resets when the action finishes, which would wipe new typing.
+          readOnly={pending}
+          aria-busy={pending || undefined}
           className="h-control-sm"
           onKeyDown={(event) => {
             if (event.key === "Escape") {
@@ -89,10 +92,10 @@ export function SubtaskForm({ mode, taskId, taskTitle, subtask, onClose }: Props
         <FieldError id={errorId}>{error}</FieldError>
       </Field>
       <Button type="submit" size="sm" disabled={pending}>
-        {mode === "create" ? "Add" : "Save"}
+        {pending ? (mode === "create" ? "Adding…" : "Saving…") : mode === "create" ? "Add" : "Save"}
       </Button>
       <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-        {mode === "create" ? "Done" : "Cancel"}
+        {mode === "create" ? "Close" : "Cancel"}
       </Button>
     </form>
   );

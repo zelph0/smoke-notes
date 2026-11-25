@@ -128,6 +128,7 @@ describe("TaskItem with subtasks", () => {
     expect(input).toHaveFocus();
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("textbox", { name: "New subtask" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: 'Add a subtask to "Write tests"' })).toHaveFocus();
   });
 });
 

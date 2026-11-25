@@ -136,4 +136,10 @@ test("subtasks: a task completes only when every subtask is done", async ({ page
   await expect(page.getByText("Subtask deleted.")).toBeVisible();
   await expect(task).toContainText("1 of 1 subtask done");
   await expect(parent).toBeEnabled();
+
+  // Leave the list empty for the next run.
+  await page.getByRole("button", { name: 'Delete "Plan the offsite"' }).click();
+  await expect(page.getByRole("alertdialog")).toContainText("and its subtask");
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByRole("heading", { name: "No tasks yet" })).toBeVisible();
 });

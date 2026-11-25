@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarIcon, ListChecksIcon, ListPlusIcon, PencilIcon, Trash2Icon } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +47,12 @@ export function TaskItem({ task, onToggle, onDelete, onToggleSubtask = noop, onD
   const [editing, setEditing] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(false);
   const closeEditor = useCallback(() => setEditing(false), []);
-  const stopAddingSubtask = useCallback(() => setAddingSubtask(false), []);
+  const addSubtaskButton = useRef<HTMLButtonElement>(null);
+  const stopAddingSubtask = useCallback(() => {
+    // Move focus before the input unmounts, so keyboard users don't land on <body>.
+    addSubtaskButton.current?.focus();
+    setAddingSubtask(false);
+  }, []);
   const checkboxId = `task-${task.id}`;
   const progressId = `${checkboxId}-progress`;
   const total = task.subtasks.length;
@@ -89,7 +94,7 @@ export function TaskItem({ task, onToggle, onDelete, onToggleSubtask = noop, onD
             </p>
           ) : null}
           {total > 0 ? (
-            <p id={progressId} className="mt-1 flex items-start gap-1 text-muted-foreground text-xs">
+            <p id={progressId} aria-live="polite" className="mt-1 flex items-start gap-1 text-muted-foreground text-xs">
               <ListChecksIcon aria-hidden="true" className="mt-0.5 size-3 shrink-0" />
               <span>
                 {total - open} of {total} {total === 1 ? "subtask" : "subtasks"} done
@@ -105,7 +110,9 @@ export function TaskItem({ task, onToggle, onDelete, onToggleSubtask = noop, onD
             size="icon-sm"
             aria-label={`Add a subtask to "${task.title}"`}
             aria-expanded={addingSubtask}
-            onClick={() => setAddingSubtask(true)}
+            data-subtask-add=""
+            ref={addSubtaskButton}
+            onClick={() => setAddingSubtask((open) => !open)}
           >
             <ListPlusIcon />
           </Button>
