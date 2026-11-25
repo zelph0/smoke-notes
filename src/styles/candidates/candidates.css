@@ -1,0 +1,7 @@
+/*
+ * Scoped token overrides for /styleguide/compare, one block per candidate:
+ *   [data-theme-preview="a"] { --primary: …; }              light tokens
+ *   .dark [data-theme-preview="a"] { --primary: …; }        dark tokens
+ *   [data-theme-preview="a"] [data-slot="button"] { … }     variant previews
+ * Empty when no comparison is running. See docs/theming.md.
+ */

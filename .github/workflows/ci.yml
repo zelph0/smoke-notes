@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  PRISMA_HIDE_UPDATE_MESSAGE: "1"
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Template placeholders in sync
+        run: pnpm template:check
+      - name: Lint (Biome)
+        run: pnpm exec biome ci .
+      - name: Typecheck
+        run: pnpm typecheck
+        env:
+          SKIP_ENV_VALIDATION: "1"
+      - name: Unit tests
+        run: pnpm test
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  db-e2e:
+    # Each run gets its own Neon branch (from main): migrate, check drift, seed,
+    # integration + e2e tests, build, then delete the branch. Both auth variants.
+    name: db-e2e (${{ matrix.variant }})
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [auth, noauth]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Remove auth module
+        if: matrix.variant == 'noauth'
+        run: |
+          pnpm auth:remove
+          pnpm install --no-frozen-lockfile
+
+      - name: Branch expiry (safety net if cleanup never runs)
+        id: expiry
+        run: echo "at=$(date -u -d '+2 hours' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Create Neon branch for this run
+        id: branch
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          parent_branch: main
+          branch_name: ci/${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.variant }}
+          get_auth_url: ${{ matrix.variant == 'auth' }}
+          expires_at: ${{ steps.expiry.outputs.at }}
+
+      - name: Export branch env
+        env:
+          DB_URL: ${{ steps.branch.outputs.db_url }}
+          DB_URL_POOLED: ${{ steps.branch.outputs.db_url_pooled }}
+          AUTH_URL: ${{ steps.branch.outputs.auth_url }}
+        run: |
+          echo "::add-mask::$DB_URL"
+          echo "::add-mask::$DB_URL_POOLED"
+          secret=$(openssl rand -base64 32)
+          echo "::add-mask::$secret"
+          {
+            echo "DATABASE_URL=$DB_URL_POOLED"
+            echo "DATABASE_URL_UNPOOLED=$DB_URL"
+            echo "NEXT_PUBLIC_APP_URL=http://localhost:3100"
+            if [ -n "$AUTH_URL" ]; then
+              echo "NEON_AUTH_BASE_URL=$AUTH_URL"
+              echo "NEON_AUTH_COOKIE_SECRET=$secret"
+            fi
+          } >> "$GITHUB_ENV"
+
+      - name: Apply migrations
+        run: pnpm db:deploy
+      - name: Schema matches migrations (no missing migration)
+        run: pnpm db:check
+      - name: Seed
+        run: pnpm db:seed
+      - name: Integration tests
+        run: pnpm test:integration
+      - name: Build
+        run: pnpm build
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: E2E tests
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-${{ matrix.variant }}
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Delete Neon branch
+        if: always() && steps.branch.outputs.branch_id != ''
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch: ${{ steps.branch.outputs.branch_id }}

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "Neon": {
+      "type": "http",
+      "url": "https://mcp.neon.tech/mcp?projectId=lively-thunder-14546820"
+    },
+    "shadcn": {
+      "command": "pnpm",
+      "args": ["exec", "shadcn", "mcp"]
+    }
+  }
+}

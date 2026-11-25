@@ -1,0 +1,34 @@
+name: Feature
+description: Something new the app should do
+labels: [feature]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / user story
+      description: Who needs what, and why?
+      placeholder: As a …, I want …, so that …
+    validations:
+      required: true
+  - type: textarea
+    id: spec
+    attributes:
+      label: Spec
+      description: Link docs/specs/<feature>.md (write it first for anything bigger than a small change).
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      description: Observable, testable outcomes. The reviewer agent and the PR check against this list.
+      value: |
+        - [ ] …
+        - [ ] Loading, empty and error states handled
+        - [ ] Owner-scoped data access + authorization test (user A can't touch user B's data)
+        - [ ] Unit + Playwright tests for the main flow
+        - [ ] Migration follows expand/contract (if the schema changes)
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / out of scope

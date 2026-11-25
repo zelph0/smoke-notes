@@ -1,0 +1,4 @@
+# Gitignored files copied into new worktrees so parallel sessions can boot.
+.env.local
+.env.test.local
+.neon

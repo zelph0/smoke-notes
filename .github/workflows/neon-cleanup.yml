@@ -1,0 +1,24 @@
+name: Clean up preview database
+
+# Deletes the PR's Neon preview branch when the PR closes (the Vercel-managed integration
+# otherwise keeps it until the deployment expires).
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  delete-preview-branch:
+    if: vars.NEON_PROJECT_ID != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: neondatabase/delete-branch-action@v3
+        continue-on-error: true # the branch may not exist (no preview was deployed)
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch: preview/${{ github.head_ref }}

@@ -1,0 +1,83 @@
+name: Production migrate & deploy
+
+# After merge to main: apply migrations to the production Neon branch, THEN deploy and
+# promote production through the deploy hook. Git-triggered production deploys are off
+# (vercel.json), and a production build fails while any migration is pending
+# (scripts/vercel-build.ts), so production never runs code ahead of its schema. Never migrate
+# prod by hand.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: migrate production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Skip when production isn't provisioned yet
+        id: guard
+        env:
+          URL: ${{ secrets.PROD_DATABASE_URL_UNPOOLED }}
+          PROVISIONED: ${{ vars.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "$URL" ] && [ -n "$PROVISIONED" ]; then
+            echo "::error::App is linked to Vercel but PROD_DATABASE_URL_UNPOOLED is missing. Re-run pnpm provision."
+            exit 1
+          elif [ -z "$URL" ]; then
+            echo "PROD_DATABASE_URL_UNPOOLED is not set: nothing to migrate (template repo or app not provisioned)."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.guard.outputs.run == 'true'
+      - uses: pnpm/action-setup@v6
+        if: steps.guard.outputs.run == 'true'
+      - uses: actions/setup-node@v7
+        if: steps.guard.outputs.run == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - if: steps.guard.outputs.run == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: prisma migrate deploy (production)
+        if: steps.guard.outputs.run == 'true'
+        run: pnpm db:deploy
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.PROD_DATABASE_URL_UNPOOLED }}
+    outputs:
+      ran: ${{ steps.guard.outputs.run }}
+
+  deploy:
+    name: deploy production
+    needs: migrate
+    # Only after migrations actually ran. The production build also fails while any migration is
+    # pending (scripts/vercel-build.ts), covering a newer commit the hook may build.
+    if: needs.migrate.outputs.ran == 'true' && vars.VERCEL_PROJECT_ID != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      # The hook builds `main` on Vercel as a production deployment and promotes it when the build
+      # succeeds. Set by `pnpm provision`; Git-triggered production deploys are off (vercel.json).
+      - name: Trigger the production deploy hook
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "VERCEL_DEPLOY_HOOK_URL is not set: run pnpm provision for this app."
+            exit 1
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Production deploy queued on Vercel."

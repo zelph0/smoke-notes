@@ -1,0 +1,7 @@
+{
+  "$comment": "Neon project for this app. Written by the provisioning script; not secret. Used by scripts/test-db.ts and the .claude/hooks/neon-guard.ts PreToolUse hook.",
+  "projectId": "lively-thunder-14546820",
+  "productionBranch": { "name": "main", "id": "br-spring-fog-bbdb4l72" },
+  "devBranch": "dev",
+  "testBranch": "test"
+}

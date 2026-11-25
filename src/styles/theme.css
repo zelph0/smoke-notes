@@ -1,0 +1,97 @@
+/*
+ * Design tokens: the ONLY file the /new-app styling step rewrites (plus src/config/fonts.ts).
+ * Components never hard-code colour, radius, border width, control height, surface padding,
+ * shadow or motion. They read these variables, so changing a token changes shape, density,
+ * borders and motion as well as colour. Verify changes on /styleguide in light and dark.
+ */
+
+:root {
+  /* Colour (oklch). Keep foreground/background pairs at >= 4.5:1 contrast. */
+  --background: oklch(0.99 0.002 95);
+  --foreground: oklch(0.18 0.01 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.01 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.01 260);
+  --primary: oklch(0.27 0.03 260);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.955 0.005 260);
+  --secondary-foreground: oklch(0.27 0.03 260);
+  --muted: oklch(0.955 0.005 260);
+  --muted-foreground: oklch(0.48 0.015 260);
+  --accent: oklch(0.94 0.012 260);
+  --accent-foreground: oklch(0.22 0.03 260);
+  --destructive: oklch(0.5 0.2 27);
+  --success: oklch(0.52 0.13 155);
+  --border: oklch(0.91 0.006 260);
+  --input: oklch(0.88 0.008 260);
+  --ring: oklch(0.55 0.08 260);
+  --chart-1: oklch(0.65 0.15 260);
+  --chart-2: oklch(0.6 0.12 185);
+  --chart-3: oklch(0.7 0.14 85);
+  --chart-4: oklch(0.6 0.16 25);
+  --chart-5: oklch(0.55 0.1 310);
+  --sidebar: oklch(0.975 0.003 260);
+  --sidebar-foreground: oklch(0.18 0.01 260);
+  --sidebar-primary: oklch(0.27 0.03 260);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.94 0.012 260);
+  --sidebar-accent-foreground: oklch(0.22 0.03 260);
+  --sidebar-border: oklch(0.91 0.006 260);
+  --sidebar-ring: oklch(0.55 0.08 260);
+
+  /* Shape */
+  --radius: 0.5rem;
+  --border-width: 1px;
+
+  /* Density: control heights and surface padding */
+  --control-height: 2.25rem;
+  --control-height-sm: 1.875rem;
+  --control-height-lg: 2.625rem;
+  --surface-padding: 1.25rem;
+  --surface-padding-sm: 0.875rem;
+
+  /* Depth */
+  --surface-shadow: 0 1px 2px oklch(0.2 0.02 260 / 0.06), 0 1px 1px oklch(0.2 0.02 260 / 0.04);
+  --overlay-shadow: 0 12px 32px -8px oklch(0.2 0.02 260 / 0.18);
+
+  /* Motion */
+  --motion-duration: 150ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Type */
+  --heading-tracking: -0.015em;
+  --heading-weight: 600;
+}
+
+.dark {
+  --background: oklch(0.16 0.008 260);
+  --foreground: oklch(0.96 0.004 260);
+  --card: oklch(0.2 0.01 260);
+  --card-foreground: oklch(0.96 0.004 260);
+  --popover: oklch(0.22 0.01 260);
+  --popover-foreground: oklch(0.96 0.004 260);
+  --primary: oklch(0.92 0.01 260);
+  --primary-foreground: oklch(0.2 0.02 260);
+  --secondary: oklch(0.26 0.012 260);
+  --secondary-foreground: oklch(0.96 0.004 260);
+  --muted: oklch(0.26 0.012 260);
+  --muted-foreground: oklch(0.72 0.012 260);
+  --accent: oklch(0.3 0.02 260);
+  --accent-foreground: oklch(0.96 0.004 260);
+  --destructive: oklch(0.74 0.17 22); /* lighter than light-mode red: passes on dialog footers too */
+  --success: oklch(0.72 0.14 155);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.7 0.06 260);
+  --sidebar: oklch(0.19 0.01 260);
+  --sidebar-foreground: oklch(0.96 0.004 260);
+  --sidebar-primary: oklch(0.92 0.01 260);
+  --sidebar-primary-foreground: oklch(0.2 0.02 260);
+  --sidebar-accent: oklch(0.3 0.02 260);
+  --sidebar-accent-foreground: oklch(0.96 0.004 260);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.7 0.06 260);
+  --surface-shadow: 0 0 0 0 transparent;
+  --overlay-shadow: 0 12px 32px -8px oklch(0 0 0 / 0.5);
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommitTypeAll(chore)", ":dependencyDashboard"],
+  "schedule": ["before 6am on monday"],
+  "timezone": "UTC",
+  "rangeStrategy": "pin",
+  "minimumReleaseAge": "3 days",
+  "lockFileMaintenance": { "enabled": true, "schedule": ["before 6am on the first day of the month"] },
+  "packageRules": [
+    {
+      "description": "Prisma stays on 7.x until the Prisma 8 migration is a deliberate decision (docs/decisions/0001).",
+      "matchPackageNames": ["prisma", "@prisma/client", "@prisma/adapter-neon"],
+      "allowedVersions": "<8",
+      "groupName": "prisma"
+    },
+    {
+      "description": "Pre-1.0 auth SDK: every bump needs a human look and an e2e run.",
+      "matchPackageNames": ["@neon/auth"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Node 24 LTS line (.nvmrc).",
+      "matchDatasources": ["node-version"],
+      "allowedVersions": "<25"
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchCurrentVersion": "!/^0/",
+      "groupName": "non-major dependencies",
+      "groupSlug": "non-major"
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    }
+  ]
+}

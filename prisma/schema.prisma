@@ -1,0 +1,33 @@
+// Prisma 7 (pinned <8, see docs/decisions/0001-prisma-7-pin.md).
+// Connection URLs live in prisma.config.ts (CLI) and src/lib/db.ts (runtime), not here.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TaskStatus {
+  TODO
+  DONE
+}
+
+/// Reference feature. Copy this shape for new features: an owner-scoped table,
+/// timestamps, and an index that matches the list query.
+model Task {
+  id        String     @id @default(cuid())
+  /// Neon Auth user id (neon_auth schema). Plain string, no cross-schema FK:
+  /// see docs/decisions/0002-neon-auth.md.
+  ownerId   String
+  title     String     @db.VarChar(200)
+  notes     String?    @db.VarChar(2000)
+  status    TaskStatus @default(TODO)
+  dueDate   DateTime?  @db.Date
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([ownerId, status, createdAt(sort: Desc)])
+}
